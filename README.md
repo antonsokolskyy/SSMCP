@@ -38,7 +38,7 @@ Many AI models, especially local models or certain cloud-based models, don't hav
 ### 1. Clone this repository
 
 ```sh
-git clone git@github.com:antonsokolskyy/SSMCP.git
+git clone https://github.com/antonsokolskyy/SSMCP.git
 ```
 
 ### 2. Create .env file
