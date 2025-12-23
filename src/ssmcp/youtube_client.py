@@ -1,6 +1,7 @@
 """YouTube client for downloading subtitles using yt-dlp."""
 
 import asyncio
+import logging
 import tempfile
 from io import StringIO
 from pathlib import Path
@@ -11,6 +12,7 @@ import yt_dlp
 
 from ssmcp.exceptions import YoutubeError
 from ssmcp.logger import logger
+from ssmcp.timing import timer
 
 FALLBACK_LANGUAGE = "en"
 
@@ -128,7 +130,8 @@ class YouTubeClient:
             ydl_opts["cookiefile"] = str(self._cookies_path)
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+            with timer("ydl.extract_info call", logging.DEBUG):
+                info = ydl.extract_info(url, download=False)
             subtitles = info.get("subtitles", {})
             auto_captions = info.get("automatic_captions", {})
 
@@ -150,7 +153,7 @@ class YouTubeClient:
                 }
             )
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl, timer("ydl.download", logging.DEBUG):
                 ydl.download([url])
 
             vtt_files = list(temp_path.glob("*.vtt"))
