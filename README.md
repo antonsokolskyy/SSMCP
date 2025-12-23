@@ -44,7 +44,7 @@ git clone git@github.com:antonsokolskyy/SSMCP.git
 ### 2. Create .env file
 
 ```sh
-cd ssmcp/
+cd SSMCP/
 cp .env.example .env
 ```
 
@@ -76,7 +76,7 @@ formats:
 ### 4. Build the SSMCP image
 
 ```sh
-docker compose --build
+docker compose build
 ```
 
 ### 5. Run the Full Stack
@@ -121,7 +121,7 @@ The file will be automatically detected and used by Docker container.
 
 ### MCP URL
 
-The server uses **Streamable HTTP** transport. Connect to the MCP server at:
+The server uses Streamable HTTP transport. Connect to the MCP server at:
 ```
 http://{HOST}:{PORT}/mcp
 ```
@@ -129,6 +129,20 @@ http://{HOST}:{PORT}/mcp
 Example:
 ```
 http://localhost:8000/mcp
+```
+
+## Usage with MCP Clients
+
+### LM Studio
+
+```json
+{
+  "mcpServers": {
+    "ssmcp": {
+      "url": "http://localhost:8000/mcp"
+    }
+  }
+}
 ```
 
 ## Tools
