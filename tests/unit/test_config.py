@@ -30,7 +30,7 @@ class TestSettings:
         expected_max_results = 10
         env_vars = {
             "SEARXNG_SEARCH_URL": "http://env.com",
-            "DEBUG": "true",
+            "SSMCP_DEBUG": "true",
             "SEARXNG_MAX_RESULTS": str(expected_max_results),
         }
         with patch.dict(os.environ, env_vars):
