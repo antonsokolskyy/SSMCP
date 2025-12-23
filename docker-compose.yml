@@ -1,0 +1,39 @@
+services:
+  searxng:
+    image: docker.io/searxng/searxng:latest
+    restart: unless-stopped
+    container_name: searxng
+    volumes:
+      - ./deploy/docker/searxng_data:/etc/searxng:rw
+    networks:
+      - ssmcp
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+
+  ssmcp:
+    build:
+      context: .
+      target: production
+    image: ssmcp:latest
+    restart: unless-stopped
+    container_name: ssmcp
+    env_file:
+      - .env
+    shm_size: 2gb
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./deploy/docker/ssmcp:/app/deploy/docker/ssmcp
+    networks:
+      - ssmcp
+    depends_on:
+      searxng:
+        condition: service_healthy
+
+networks:
+  ssmcp:
+    driver: bridge
