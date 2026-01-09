@@ -10,6 +10,7 @@ from fastmcp.exceptions import ToolError
 from ssmcp.config import settings
 from ssmcp.exceptions import SSMCPError
 from ssmcp.logger import logger, setup_logging
+from ssmcp.middleware.redis_middleware import RedisLoggingMiddleware
 from ssmcp.parser.parser import Parser
 from ssmcp.searxng_client import SearXNGClient
 from ssmcp.timing import timeit
@@ -116,7 +117,10 @@ def get_youtube_client(state: ServerState) -> YouTubeClient:
     return state.youtube_client
 
 
+# Add Redis middleware if enabled
 mcp = TypedFastMCP("ssmcp", lifespan=lifespan)
+if settings.redis_url:
+    mcp.add_middleware(RedisLoggingMiddleware(redis_url=settings.redis_url))
 
 
 @mcp.tool(
