@@ -5,6 +5,7 @@ import time
 from typing import Any
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
+from fastmcp.tools.tool import ToolResult
 from redis.asyncio import Redis
 
 from ssmcp.config import settings
@@ -45,12 +46,32 @@ class RedisLoggingMiddleware(Middleware):
         result = await call_next(context)
 
         try:
+            # Extract content from ToolResult if necessary
+            # FastMCP wraps tool outputs in ToolResult objects
+            response_content = ""
+            if isinstance(result, ToolResult):
+                # ToolResult.content is a list of ContentBlock objects
+                contents = []
+                for item in result.content:
+                    if hasattr(item, "text"):
+                        contents.append(item.text)
+                    else:
+                        contents.append(str(item))
+                response_content = "\n".join(contents)
+
+                # If there's structured content and it's not just the same as text
+                if result.structured_content and not response_content:
+                    response_content = json.dumps(result.structured_content, indent=2)
+            elif isinstance(result, list | dict):
+                response_content = json.dumps(result, indent=2)
+            else:
+                response_content = str(result)
+
             # Store tool params and response
-            # context.message for on_call_tool is a CallToolRequest
             log_data = {
                 "tool": context.message.name,
                 "params": context.message.arguments,
-                "response": str(result),
+                "response": response_content,
             }
 
             # Unique key with timestamp

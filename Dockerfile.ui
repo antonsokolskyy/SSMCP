@@ -1,0 +1,41 @@
+FROM python:3.13-slim
+
+# Prevent Python from writing bytecode and buffering stdout/stderr
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first (for better layer caching)
+COPY pyproject.toml uv.lock README.md .python-version ./
+
+# Change ownership of app directory
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Install uv package manager as appuser
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add uv to PATH for appuser
+ENV PATH="/home/appuser/.local/bin:${PATH}"
+
+# Copy application source code
+COPY --chown=appuser:appuser src/ ./src/
+
+# Install dependencies
+RUN uv sync --frozen --no-dev
+
+# Run the FastAPI server
+CMD ["uv", "run", "uvicorn", "src.ssmcp_ui.main:app", "--host", "0.0.0.0", "--port", "8080"]

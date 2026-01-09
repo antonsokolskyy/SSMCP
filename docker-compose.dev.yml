@@ -49,6 +49,23 @@ services:
       searxng:
         condition: service_healthy
 
+  # ssmcp-ui:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.ui
+  #   image: ssmcp-ui:latest
+  #   restart: unless-stopped
+  #   container_name: ssmcp-ui
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - '8081:8080'
+  #   networks:
+  #     - ssmcp
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
 networks:
   ssmcp:
     driver: bridge
