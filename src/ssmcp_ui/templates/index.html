@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ssmcp Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <style>
+        body { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .request-card { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        .timestamp { color: #666; font-size: 0.9em; }
+        .tool-name { font-weight: bold; font-size: 1.2em; color: #007bff; }
+        pre { background: #1e1e1e; color: #d4d4d4; padding: 10px; border-radius: 4px; overflow-x: auto; border: 1px solid #333; }
+        .view-link { display: inline-block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <h1>ssmcp Monitor</h1>
+    <p>Recent requests and responses from the MCP server.</p>
+
+    {% if not requests %}
+        <p>No requests found in Redis.</p>
+    {% else %}
+        {% for req in requests %}
+            <div class="request-card">
+                <div class="timestamp">{{ req.timestamp }}</div>
+                <div class="tool-name">{{ req.tool }}</div>
+                <pre>{{ req.params }}</pre>
+                <a href="/request/{{ req.id }}" class="view-link">View Details & Response</a>
+            </div>
+        {% endfor %}
+    {% endif %}
+</body>
+</html>

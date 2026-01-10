@@ -73,6 +73,11 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # --- Redis ---
+    redis_url: str = ""
+    redis_key_prefix: str = "ssmcp"
+    redis_expiration_seconds: int = 3600
+
     # --- Tool Metadata ---
     # Tool descriptions are stored here so they can be updated via environment
     # variables without code changes.

@@ -34,6 +34,36 @@ services:
       searxng:
         condition: service_healthy
 
+  # redis:
+  #   image: docker.io/redis:8-alpine
+  #   restart: unless-stopped
+  #   container_name: redis
+  #   networks:
+  #     - ssmcp
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 15s
+
+  # ssmcp-ui:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.ui
+  #   image: ssmcp-ui:latest
+  #   restart: unless-stopped
+  #   container_name: ssmcp-ui
+  #   env_file:
+  #     - .env
+  #   ports:
+  #     - '8081:8080'
+  #   networks:
+  #     - ssmcp
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
 networks:
   ssmcp:
     driver: bridge
