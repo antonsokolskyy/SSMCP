@@ -47,14 +47,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[dict[str, UIState]]:
 app = FastAPI(title="ssmcp Monitor", lifespan=lifespan)
 templates = Jinja2Templates(directory="src/ssmcp_ui/templates")
 
-# Pattern to validate Redis key format: prefix:timestamp
-KEY_PATTERN = re.compile(rf"^{re.escape(settings.redis_key_prefix)}:\d+$")
+# Pattern to validate Redis key format: prefix:timestamp:unique_id
+KEY_PATTERN = re.compile(rf"^{re.escape(settings.redis_key_prefix)}:\d+:[a-f0-9]+$")
 
 
 def format_timestamp(key: str) -> str:
-    """Extract and format timestamp from Redis key."""
+    """Extract and format timestamp from Redis key.
+
+    Key format: prefix:timestamp:unique_id
+    """
     try:
-        ts = int(key.split(":")[-1])
+        parts = key.split(":")
+        ts = int(parts[1])  # Second part is the timestamp
         return datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
     except (ValueError, IndexError):
         return "Unknown"
@@ -85,18 +89,24 @@ async def index(request: Request) -> HTMLResponse:
     # Sort keys by timestamp (descending)
     keys.sort(reverse=True)
 
+    # Use mget for batch fetching to reduce Redis round trips
     requests = []
-    for key in keys:
-        key_str = key.decode("utf-8")
-        data_raw = await redis_client.get(key)
-        if data_raw:
-            data = json.loads(data_raw)
-            requests.append({
-                "id": key_str,
-                "timestamp": format_timestamp(key_str),
-                "tool": data.get("tool", "Unknown"),
-                "params": json.dumps(data.get("params", {}), indent=2),
-            })
+    if keys:
+        values = await redis_client.mget(keys)
+        for key, data_raw in zip(keys, values, strict=True):
+            if data_raw:
+                key_str = key.decode("utf-8")
+                try:
+                    data = json.loads(data_raw)
+                    requests.append({
+                        "id": key_str,
+                        "timestamp": format_timestamp(key_str),
+                        "tool": data.get("tool", "Unknown"),
+                        "params": json.dumps(data.get("params", {}), indent=2),
+                    })
+                except json.JSONDecodeError:
+                    # Skip corrupted data
+                    continue
 
     return templates.TemplateResponse(
         "index.html",
@@ -133,7 +143,10 @@ async def request_detail(request: Request, request_id: str) -> HTMLResponse:
     if not data_raw:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    data = json.loads(data_raw)
+    try:
+        data = json.loads(data_raw)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail="Corrupted data in Redis") from e
 
     return templates.TemplateResponse(
         "detail.html",

@@ -1,6 +1,7 @@
 """Redis Middleware for storing requests and responses."""
 
 import json
+import secrets
 import time
 from typing import Any
 
@@ -22,10 +23,19 @@ class RedisLoggingMiddleware(Middleware):
             redis_url: Redis connection URL
 
         """
-        if not redis_url:
+        self.redis_url = redis_url
+        self.redis_client: Redis | None = None
+
+    async def startup(self) -> None:
+        """Initialize Redis connection on startup."""
+        if self.redis_url:
+            self.redis_client = Redis.from_url(self.redis_url)
+
+    async def shutdown(self) -> None:
+        """Cleanup Redis connection on shutdown."""
+        if self.redis_client:
+            await self.redis_client.aclose()
             self.redis_client = None
-        else:
-            self.redis_client = Redis.from_url(redis_url)
 
     async def on_call_tool(self, context: MiddlewareContext, call_next: Any) -> Any:
         """Process the tool call and store params and response in Redis.
@@ -74,8 +84,9 @@ class RedisLoggingMiddleware(Middleware):
                 "response": response_content,
             }
 
-            # Unique key with timestamp
-            key = f"{settings.redis_key_prefix}:{int(time.time())}"
+            # Unique key with timestamp and random suffix to prevent collisions
+            unique_id = secrets.token_hex(4)
+            key = f"{settings.redis_key_prefix}:{int(time.time())}:{unique_id}"
             await self.redis_client.setex(
                 key,
                 settings.redis_expiration_seconds,

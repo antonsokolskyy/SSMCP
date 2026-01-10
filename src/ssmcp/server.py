@@ -93,9 +93,19 @@ async def lifespan(app: TypedFastMCP) -> AsyncIterator[dict[str, Any]]:
     # Attach state to the typed mcp object
     app.state = state
 
+    # Initialize middleware if present
+    for middleware in app.middleware:
+        if hasattr(middleware, "startup"):
+            await middleware.startup()
+
     try:
         yield {"state": state}
     finally:
+        # Cleanup middleware if present
+        for middleware in app.middleware:
+            if hasattr(middleware, "shutdown"):
+                await middleware.shutdown()
+
         await state.stop()
 
 

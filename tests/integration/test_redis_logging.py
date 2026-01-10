@@ -27,6 +27,7 @@ async def test_redis_logging_integration() -> None:
         pytest.skip(f"Could not connect to Redis: {e}")
 
     middleware = RedisLoggingMiddleware(redis_url=redis_url)
+    await middleware.startup()
 
     context = MagicMock(spec=MiddlewareContext)
     context.message = MagicMock()
