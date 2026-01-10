@@ -1,6 +1,28 @@
 .PHONY: help test test-cov check check-fix clean shell rebuild build start up down stop restart logs
 
 SERVICE_NAME=ssmcp
+UI_SERVICE_NAME=ssmcp-ui
+
+# Detect which compose file(s) to check by inspecting .env
+COMPOSE_FILES := $(shell [ -f .env ] && grep "^COMPOSE_FILE=" .env | cut -d= -f2 | tr ':' ' ' || echo "docker-compose.yml")
+ifeq ($(COMPOSE_FILES),)
+	COMPOSE_FILES := docker-compose.yml
+endif
+
+# Detect if UI service is enabled (uncommented in any relevant compose file)
+UI_ENABLED := $(shell for file in $(COMPOSE_FILES); do \
+	if [ -f "$$file" ] && grep -q "^[[:space:]]*$(UI_SERVICE_NAME):" "$$file"; then \
+		echo "true"; \
+		exit 0; \
+	fi; \
+done; echo "false")
+
+# Build list of services to manage
+ifeq ($(UI_ENABLED),true)
+	SERVICES := $(SERVICE_NAME) $(UI_SERVICE_NAME)
+else
+	SERVICES := $(SERVICE_NAME)
+endif
 
 help:  ## Show this help message
 	@echo "Available targets:"
@@ -54,10 +76,11 @@ clean:  ## Clean generated files
 shell:  ## Open a shell in the container
 	docker compose exec $(SERVICE_NAME) bash
 
-build:  ## Build the Docker image
-	docker compose up -d --build --force-recreate $(SERVICE_NAME)
+build:  ## Build and start services (includes UI if enabled)
+	@echo "Building services: $(SERVICES)"
+	docker compose up -d --build --force-recreate $(SERVICES)
 
-rebuild: build ## Alias for build - Build the Docker image
+rebuild: build ## Alias for build - Build and start services
 
 up:  ## Start all services in detached mode
 	docker compose up -d
@@ -69,10 +92,12 @@ down:  ## Stop all services
 
 stop: down  ## Alias for down - Stop all services
 
-restart:  ## Restart the MCP server service
-	docker compose up -d --force-recreate $(SERVICE_NAME)
+restart:  ## Restart services (includes UI if enabled)
+	@echo "Restarting services: $(SERVICES)"
+	docker compose up -d --force-recreate $(SERVICES)
 
-logs:  ## View logs from ssmcp service
-	docker compose logs $(SERVICE_NAME) -f
+logs:  ## View logs from services (includes UI if enabled)
+	@echo "Showing logs for: $(SERVICES)"
+	docker compose logs $(SERVICES) -f
 
 .DEFAULT_GOAL := help
