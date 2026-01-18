@@ -290,6 +290,59 @@ Run `make help` to see all available commands:
 
 All configuration is managed through environment variables. See `.env.example` for available options
 
+## Optional OAuth Authentication (OpenWebUI)
+
+SSMCP supports OAuth authentication for use with OpenWebUI and any OIDC-compliant identity provider.
+
+### How OpenWebUI OAuth Works
+
+When you select **OAuth** in OpenWebUI for an MCP server:
+- OpenWebUI forwards the system user's OAuth access token in the `Authorization: Bearer <token>` header
+- The token is a JWT containing user information from the identity provider
+- SSMCP validates the token and extracts the user email from the `sub` claim
+
+### Enabling OAuth
+
+To enable OAuth authentication, set the following environment variables in your `.env` file:
+
+```bash
+# Enable OAuth authentication
+OAUTH_ENABLED=true
+
+# JWKS endpoint URL for your identity provider's public keys
+# Examples:
+#   Authentik: https://authentik.example.com/application/o/my-app/jwks
+OAUTH_JWKS_URL=https://your-idp.example.com/path/to/jwks
+
+# Open WebUI client ID for token audience verification
+OAUTH_CLIENT_ID=your-openwebui-client-id
+```
+
+### Token Validation
+
+When OAuth is enabled, SSMCP validates:
+
+1. **JWT Signature**: Verifies the token signature using the identity provider's public keys from the JWKS endpoint
+2. **Expiration**: Validates the `exp` claim - rejects expired tokens
+3. **Audience**: Validates the `aud` claim matches `OAUTH_CLIENT_ID`
+4. **Subject**: Requires the `sub` claim (contains user email)
+
+### OpenWebUI Configuration
+
+In OpenWebUI, configure the MCP server with:
+
+- **Type**: MCP Streamable HTTP
+- **URL**: Your SSMCP server URL (e.g., `http://ssmcp:8000/mcp`)
+- **Auth**: OAuth
+- The system will automatically forward the user's OAuth token
+
+### Supported Identity Providers
+
+SSMCP works with any OIDC-compliant identity provider that:
+- Provides a JWKS endpoint for public key distribution
+- Issues JWT access tokens with RS256 signing
+- Includes standard claims (`sub`, `aud`, `exp`)
+
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE) file for details.
