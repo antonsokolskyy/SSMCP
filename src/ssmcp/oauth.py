@@ -94,11 +94,8 @@ class JWKSProvider:
                     self._keys[key_data["kid"]] = key
 
                 self._cache_time = time.time()
-            except httpx.HTTPError as e:
+            except (httpx.HTTPError, KeyError, ValueError, Exception) as e:
                 msg = f"Failed to fetch JWKS from {self.jwks_url}: {e}"
-                raise InvalidJWKSURLError(msg) from e
-            except KeyError as e:
-                msg = f"Invalid JWKS format: missing key {e}"
                 raise InvalidJWKSURLError(msg) from e
 
     def _parse_jwk(self, jwk_data: dict[str, Any]) -> Any:
