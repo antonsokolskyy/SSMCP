@@ -6,11 +6,13 @@ from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from fastmcp.exceptions import ToolError
+from fastmcp.server.dependencies import get_http_request
 
 from ssmcp.config import settings
 from ssmcp.exceptions import SSMCPError
 from ssmcp.logger import logger, setup_logging
 from ssmcp.middleware.redis_middleware import RedisLoggingMiddleware
+from ssmcp.oauth import OAuthTokenVerifier
 from ssmcp.parser.parser import Parser
 from ssmcp.searxng_client import SearXNGClient
 from ssmcp.timing import timeit
@@ -33,6 +35,7 @@ class TypedFastMCP(FastMCP):
         """Initialize TypedFastMCP with state set to None."""
         super().__init__(*args, **kwargs)
         self.state = None
+        self.oauth_verifier = OAuthTokenVerifier() if settings.oauth_enabled else None
 
 
 class ServerState:
@@ -110,6 +113,57 @@ async def lifespan(app: TypedFastMCP) -> AsyncIterator[dict[str, Any]]:
 
 
 # Helper functions
+def log_tool_call(tool_name: str, details: str, user_id: str | None) -> None:
+    """Log a tool call with optional user ID.
+
+    Args:
+        tool_name: Name of the tool being called
+        details: Details about the tool call (e.g., query, URL)
+        user_id: User ID if OAuth is enabled and authenticated
+
+    """
+    if user_id:
+        logger.info("[TOOL CALLED][%s] %s: %s", user_id, tool_name, details)
+    else:
+        logger.info("[TOOL CALLED] %s: %s", tool_name, details)
+
+
+async def get_user_id() -> str | None:
+    """Get user ID from OAuth token if enabled.
+
+    Returns:
+        User ID if OAuth is enabled and token is valid, None if OAuth is disabled
+
+    Raises:
+        ToolError: If OAuth is enabled but authentication fails
+        TokenValidationError: If token format or signature is invalid
+        TokenExpiredError: If token has expired
+        AudienceMismatchError: If aud claim doesn't match client ID
+        SubjectClaimMissingError: If sub claim is missing
+        InvalidJWKSURLError: If JWKS endpoint cannot be reached
+
+    """
+    if not settings.oauth_enabled or not mcp.oauth_verifier:
+        logger.debug("OAuth is disabled, skipping authentication")
+        return None
+
+    # When OAuth is enabled, authentication is required
+    request = get_http_request()
+    auth_header = request.headers.get("Authorization", "")
+
+    if not auth_header.startswith("Bearer "):
+        msg = "OAuth is enabled but Authorization header is missing or invalid"
+        raise ToolError(msg)
+
+    token = auth_header[len("Bearer "):]
+
+    # verify_token validates the JWT and raises specific OAuth exceptions on failure
+    result = await mcp.oauth_verifier.verify_token(token)
+    user_id = str(result["sub"])
+    logger.debug("OAuth authentication successful for user: %s", user_id)
+    return user_id
+
+
 def get_state() -> ServerState:
     """Get the server state from the context."""
     if mcp.state is None:
@@ -143,7 +197,8 @@ async def web_search(
     ctx: Context,
 ) -> list[dict[str, Any]]:
     """Perform a web search and return relevant results with enriched content."""
-    logger.info("[TOOL CALLED] web_search with query: %s", query)
+    user_id = await get_user_id()
+    log_tool_call("web_search", f"query: {query}", user_id)
     state = get_state()
     try:
         results = await state.search_and_enrich(query, ctx)
@@ -162,7 +217,8 @@ async def web_fetch(
     ctx: Context,
 ) -> str:
     """Fetch content from a specified URL and convert to Markdown."""
-    logger.info("[TOOL CALLED] web_fetch for URL: %s", url)
+    user_id = await get_user_id()
+    log_tool_call("web_fetch", f"URL: {url}", user_id)
     parser = get_parser(get_state())
     try:
         result = await parser.parse_pages([url], ctx)
@@ -180,7 +236,8 @@ async def youtube_get_subtitles(
     url: Annotated[str, settings.arg_youtube_get_subtitles_url_desc],
 ) -> str:
     """Get subtitles from a YouTube video and return the text content."""
-    logger.info("[TOOL CALLED] youtube_get_subtitles for URL: %s", url)
+    user_id = await get_user_id()
+    log_tool_call("youtube_get_subtitles", f"URL: {url}", user_id)
     youtube = get_youtube_client(get_state())
     try:
         result = await youtube.get_subtitles(url)
