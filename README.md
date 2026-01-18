@@ -348,7 +348,7 @@ In OpenWebUI, configure the MCP server with:
 SSMCP works with any OIDC-compliant identity provider that:
 - Provides a JWKS endpoint for public key distribution
 - Issues JWT access tokens with RS256 signing
-- Includes standard claims (`sub`, `aud`, `exp`)
+- Includes standard claims (`sub`, `aud`, `exp`, `iss`)
 
 ## License
 
