@@ -159,7 +159,7 @@ class TestOAuthEnabledBehavior:
         valid_jwt_token: str,
         sample_jwks_response: dict[str, Any],
     ) -> None:
-        """Test that logging function works with user email."""
+        """Test that logging function works with user ID."""
         # Mock JWKS endpoint
         mock_response = AsyncMock()
         mock_response.raise_for_status = Mock()
@@ -174,13 +174,13 @@ class TestOAuthEnabledBehavior:
                     return_value=mock_response
                 )
 
-                # Verify token and check that user email is extracted
+                # Verify token and check that user ID is extracted
                 verifier = OAuthTokenVerifier()
                 result = await verifier.verify_token(valid_jwt_token)
 
                 assert result["sub"] == "test@example.com"
 
-                # The logging function should work with user email
+                # The logging function should work with user ID
                 # We can't easily test log capture, so just verify it doesn't crash
                 # This should not raise any exceptions
                 log_tool_call("test_tool", "test details", result["sub"])

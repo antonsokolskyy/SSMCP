@@ -135,7 +135,7 @@ class OAuthTokenVerifier:
     - JWT signature using JWKS public keys
     - Token expiration (exp claim)
     - Audience (aud claim) matches configured client ID
-    - Subject (sub claim) exists and contains user email
+    - Subject (sub claim) exists and contains user ID
 
     """
 

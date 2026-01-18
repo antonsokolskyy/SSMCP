@@ -113,26 +113,26 @@ async def lifespan(app: TypedFastMCP) -> AsyncIterator[dict[str, Any]]:
 
 
 # Helper functions
-def log_tool_call(tool_name: str, details: str, user_email: str | None) -> None:
-    """Log a tool call with optional user email.
+def log_tool_call(tool_name: str, details: str, user_id: str | None) -> None:
+    """Log a tool call with optional user ID.
 
     Args:
         tool_name: Name of the tool being called
         details: Details about the tool call (e.g., query, URL)
-        user_email: User email if OAuth is enabled and authenticated
+        user_id: User ID if OAuth is enabled and authenticated
 
     """
-    if user_email:
-        logger.info("[TOOL CALLED][%s] %s: %s", user_email, tool_name, details)
+    if user_id:
+        logger.info("[TOOL CALLED][%s] %s: %s", user_id, tool_name, details)
     else:
         logger.info("[TOOL CALLED] %s: %s", tool_name, details)
 
 
-async def get_user_email() -> str | None:
-    """Get user email from OAuth token if enabled.
+async def get_user_id() -> str | None:
+    """Get user ID from OAuth token if enabled.
 
     Returns:
-        User email if OAuth is enabled and token is valid, None if OAuth is disabled
+        User ID if OAuth is enabled and token is valid, None if OAuth is disabled
 
     Raises:
         ToolError: If OAuth is enabled but authentication fails
@@ -194,8 +194,8 @@ async def web_search(
     ctx: Context,
 ) -> list[dict[str, Any]]:
     """Perform a web search and return relevant results with enriched content."""
-    user_email = await get_user_email()
-    log_tool_call("web_search", f"query: {query}", user_email)
+    user_id = await get_user_id()
+    log_tool_call("web_search", f"query: {query}", user_id)
     state = get_state()
     try:
         results = await state.search_and_enrich(query, ctx)
@@ -214,8 +214,8 @@ async def web_fetch(
     ctx: Context,
 ) -> str:
     """Fetch content from a specified URL and convert to Markdown."""
-    user_email = await get_user_email()
-    log_tool_call("web_fetch", f"URL: {url}", user_email)
+    user_id = await get_user_id()
+    log_tool_call("web_fetch", f"URL: {url}", user_id)
     parser = get_parser(get_state())
     try:
         result = await parser.parse_pages([url], ctx)
@@ -233,8 +233,8 @@ async def youtube_get_subtitles(
     url: Annotated[str, settings.arg_youtube_get_subtitles_url_desc],
 ) -> str:
     """Get subtitles from a YouTube video and return the text content."""
-    user_email = await get_user_email()
-    log_tool_call("youtube_get_subtitles", f"URL: {url}", user_email)
+    user_id = await get_user_id()
+    log_tool_call("youtube_get_subtitles", f"URL: {url}", user_id)
     youtube = get_youtube_client(get_state())
     try:
         result = await youtube.get_subtitles(url)

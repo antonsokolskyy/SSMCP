@@ -299,7 +299,7 @@ SSMCP supports OAuth authentication for use with OpenWebUI and any OIDC-complian
 When you select **OAuth** in OpenWebUI for an MCP server:
 - OpenWebUI forwards the system user's OAuth access token in the `Authorization: Bearer <token>` header
 - The token is a JWT containing user information from the identity provider
-- SSMCP validates the token and extracts the user email from the `sub` claim
+- SSMCP validates the token and extracts the user identifier from the `sub` claim
 
 ### Enabling OAuth
 
@@ -325,7 +325,7 @@ When OAuth is enabled, SSMCP validates:
 1. **JWT Signature**: Verifies the token signature using the identity provider's public keys from the JWKS endpoint
 2. **Expiration**: Validates the `exp` claim - rejects expired tokens
 3. **Audience**: Validates the `aud` claim matches `OAUTH_CLIENT_ID`
-4. **Subject**: Requires the `sub` claim (contains user email)
+4. **Subject**: Requires the `sub` claim (contains user identifier)
 
 ### OpenWebUI Configuration
 
