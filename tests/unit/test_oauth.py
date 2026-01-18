@@ -14,11 +14,15 @@ from cryptography.hazmat.primitives.serialization import Encoding, NoEncryption,
 from ssmcp.exceptions import (
     AudienceMismatchError,
     InvalidJWKSURLError,
+    IssuerMismatchError,
     SubjectClaimMissingError,
     TokenExpiredError,
     TokenValidationError,
 )
 from ssmcp.oauth import JWKSProvider, OAuthTokenVerifier
+
+# Test configuration
+TEST_ISSUER = "https://auth.example.com"
 
 DEFAULT_CACHE_TTL = 3600
 CUSTOM_CACHE_TTL = 1800
@@ -288,6 +292,7 @@ class TestOAuthTokenVerifier:
         private_pem, jwk_data = rsa_keys
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "user@example.com",
             "aud": "test-client-id",
             "exp": int(time.time()) + 3600,
@@ -313,6 +318,7 @@ class TestOAuthTokenVerifier:
         private_pem, jwk_data = rsa_keys
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "user@example.com",
             "aud": "test-client-id",
             "exp": int(time.time()) - 3600,  # Expired 1 hour ago
@@ -338,6 +344,7 @@ class TestOAuthTokenVerifier:
         private_pem, jwk_data = rsa_keys
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "user@example.com",
             "aud": "wrong-client-id",
             "exp": int(time.time()) + 3600,
@@ -363,6 +370,33 @@ class TestOAuthTokenVerifier:
         private_pem, jwk_data = rsa_keys
 
         payload = {
+            "iss": TEST_ISSUER,
+            "aud": "test-client-id",
+            "exp": int(time.time()) + 3600,
+            "iat": int(time.time()),
+            "kid": jwk_data["kid"],
+        }
+
+        return jwt.encode(payload, private_pem, algorithm="RS256", headers={"kid": jwk_data["kid"]})
+
+    @pytest.fixture
+    def wrong_issuer_token(
+        self,
+        rsa_keys: tuple[bytes, dict[str, Any]],
+    ) -> str:
+        """Create a token with wrong issuer.
+
+        Args:
+            rsa_keys: RSA key pair
+
+        Returns:
+            JWT token with wrong issuer
+        """
+        private_pem, jwk_data = rsa_keys
+
+        payload = {
+            "iss": "https://wrong-issuer.example.com",
+            "sub": "user@example.com",
             "aud": "test-client-id",
             "exp": int(time.time()) + 3600,
             "iat": int(time.time()),
@@ -386,6 +420,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -413,6 +448,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -437,6 +473,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -463,6 +500,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -484,6 +522,7 @@ class TestOAuthTokenVerifier:
         private_pem, _ = rsa_keys
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "user@example.com",
             "aud": "test-client-id",
             "exp": int(time.time()) + 3600,
@@ -495,6 +534,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             verifier = OAuthTokenVerifier()
             with pytest.raises(TokenValidationError, match="Token missing 'kid' in header"):
@@ -513,6 +553,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -531,6 +572,7 @@ class TestOAuthTokenVerifier:
                 )
 
                 payload = {
+                    "iss": TEST_ISSUER,
                     "sub": "user@example.com",
                     "aud": "test-client-id",
                     "exp": int(time.time()) + 3600,
@@ -548,6 +590,33 @@ class TestOAuthTokenVerifier:
                     await verifier.verify_token(token)
 
     @pytest.mark.asyncio
+    async def test_verify_token_wrong_issuer(
+        self,
+        wrong_issuer_token: str,
+        sample_jwks_response: dict[str, Any],
+    ) -> None:
+        """Test verification of token with wrong issuer."""
+        mock_response = AsyncMock()
+        mock_response.raise_for_status = Mock()
+        mock_response.json = Mock(return_value=sample_jwks_response)
+
+        with patch("ssmcp.oauth.settings") as mock_settings:
+            mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
+            mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
+
+            with patch("httpx.AsyncClient") as mock_client:
+                mock_client.return_value.__aenter__.return_value.get = AsyncMock(
+                    return_value=mock_response
+                )
+
+                verifier = OAuthTokenVerifier()
+                with pytest.raises(
+                    IssuerMismatchError, match="Token issuer does not match"
+                ):
+                    await verifier.verify_token(wrong_issuer_token)
+
+    @pytest.mark.asyncio
     async def test_verify_token_invalid_format(
         self,
     ) -> None:
@@ -555,6 +624,7 @@ class TestOAuthTokenVerifier:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             verifier = OAuthTokenVerifier()
             with pytest.raises(TokenValidationError, match="Invalid token"):

@@ -314,6 +314,12 @@ OAUTH_ENABLED=true
 #   Authentik: https://authentik.example.com/application/o/my-app/jwks
 OAUTH_JWKS_URL=https://your-idp.example.com/path/to/jwks
 
+# Issuer URL for token issuer verification
+# Must match the 'iss' claim in JWT tokens
+# Examples
+#   Authentik: https://authentik.example.com/application/o/my-app
+OAUTH_ISSUER=https://your-idp.example.com/application/o/my-app
+
 # Open WebUI client ID for token audience verification
 OAUTH_CLIENT_ID=your-openwebui-client-id
 ```
@@ -323,9 +329,10 @@ OAUTH_CLIENT_ID=your-openwebui-client-id
 When OAuth is enabled, SSMCP validates:
 
 1. **JWT Signature**: Verifies the token signature using the identity provider's public keys from the JWKS endpoint
-2. **Expiration**: Validates the `exp` claim - rejects expired tokens
-3. **Audience**: Validates the `aud` claim matches `OAUTH_CLIENT_ID`
-4. **Subject**: Requires the `sub` claim (contains user identifier)
+2. **Issuer**: Validates the `iss` claim matches `OAUTH_ISSUER`
+3. **Expiration**: Validates the `exp` claim - rejects expired tokens
+4. **Audience**: Validates the `aud` claim matches `OAUTH_CLIENT_ID`
+5. **Subject**: Requires the `sub` claim (contains user identifier)
 
 ### OpenWebUI Configuration
 

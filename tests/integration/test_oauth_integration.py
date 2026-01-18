@@ -24,6 +24,9 @@ from ssmcp.exceptions import (
 from ssmcp.oauth import JWKSProvider, OAuthTokenVerifier
 from ssmcp.server import log_tool_call
 
+# Test configuration
+TEST_ISSUER = "https://auth.example.com"
+
 
 @pytest.fixture
 def rsa_keys_for_integration() -> tuple[bytes, dict[str, str]]:
@@ -78,6 +81,7 @@ def valid_jwt_token(rsa_keys_for_integration: tuple[bytes, dict[str, str]]) -> s
     private_pem, jwk_data = rsa_keys_for_integration
 
     payload = {
+        "iss": TEST_ISSUER,
         "sub": "test@example.com",
         "aud": "test-client-id",
         "exp": int(time.time()) + 3600,
@@ -127,6 +131,7 @@ class TestOAuthEnabledBehavior:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -146,6 +151,7 @@ class TestOAuthEnabledBehavior:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             # Test with invalid token
             verifier = OAuthTokenVerifier()
@@ -168,6 +174,7 @@ class TestOAuthEnabledBehavior:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -205,6 +212,7 @@ class TestOAuthErrorHandling:
         private_pem, jwk_data = rsa_keys_for_integration
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "test@example.com",
             "aud": "test-client-id",
             "exp": int(time.time()) - 3600,  # Expired
@@ -221,6 +229,7 @@ class TestOAuthErrorHandling:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -248,6 +257,7 @@ class TestOAuthErrorHandling:
         private_pem, jwk_data = rsa_keys_for_integration
 
         payload = {
+            "iss": TEST_ISSUER,
             "sub": "test@example.com",
             "aud": "wrong-client-id",
             "exp": int(time.time()) + 3600,
@@ -263,6 +273,7 @@ class TestOAuthErrorHandling:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(
@@ -292,6 +303,7 @@ class TestOAuthErrorHandling:
         private_pem, jwk_data = rsa_keys_for_integration
 
         payload = {
+            "iss": TEST_ISSUER,
             "aud": "test-client-id",
             "exp": int(time.time()) + 3600,
         }
@@ -306,6 +318,7 @@ class TestOAuthErrorHandling:
         with patch("ssmcp.oauth.settings") as mock_settings:
             mock_settings.oauth_jwks_url = "https://auth.example.com/jwks"
             mock_settings.oauth_client_id = "test-client-id"
+            mock_settings.oauth_issuer = TEST_ISSUER
 
             with patch("httpx.AsyncClient") as mock_client:
                 mock_client.return_value.__aenter__.return_value.get = AsyncMock(

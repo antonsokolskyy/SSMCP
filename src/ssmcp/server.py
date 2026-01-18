@@ -144,6 +144,7 @@ async def get_user_id() -> str | None:
 
     """
     if not settings.oauth_enabled or not mcp.oauth_verifier:
+        logger.debug("OAuth is disabled, skipping authentication")
         return None
 
     # When OAuth is enabled, authentication is required
@@ -158,7 +159,9 @@ async def get_user_id() -> str | None:
 
     # verify_token validates the JWT and raises specific OAuth exceptions on failure
     result = await mcp.oauth_verifier.verify_token(token)
-    return str(result["sub"])
+    user_id = str(result["sub"])
+    logger.debug("OAuth authentication successful for user: %s", user_id)
+    return user_id
 
 
 def get_state() -> ServerState:

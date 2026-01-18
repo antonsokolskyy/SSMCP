@@ -44,6 +44,10 @@ class TokenExpiredError(OAuthError):
     """Token has expired based on exp claim."""
 
 
+class IssuerMismatchError(OAuthError):
+    """Token issuer (iss) claim does not match expected issuer URL."""
+
+
 class AudienceMismatchError(OAuthError):
     """Token audience (aud) claim does not match expected client ID."""
 

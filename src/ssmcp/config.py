@@ -83,6 +83,7 @@ class Settings(BaseSettings):
     oauth_enabled: bool = False
     oauth_jwks_url: str = ""
     oauth_client_id: str = ""
+    oauth_issuer: str = ""
 
     @model_validator(mode="after")
     def validate_oauth_config(self) -> "Settings":
@@ -98,6 +99,9 @@ class Settings(BaseSettings):
                 raise ValueError(msg)
             if not self.oauth_client_id:
                 msg = "OAUTH_CLIENT_ID must be set when OAUTH_ENABLED=true"
+                raise ValueError(msg)
+            if not self.oauth_issuer:
+                msg = "OAUTH_ISSUER must be set when OAUTH_ENABLED=true"
                 raise ValueError(msg)
         return self
 

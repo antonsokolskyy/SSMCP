@@ -12,6 +12,7 @@ from ssmcp.config import settings
 from ssmcp.exceptions import (
     AudienceMismatchError,
     InvalidJWKSURLError,
+    IssuerMismatchError,
     SubjectClaimMissingError,
     TokenExpiredError,
     TokenValidationError,
@@ -134,6 +135,7 @@ class OAuthTokenVerifier:
     This verifier implements the MCP TokenVerifier protocol and validates:
     - JWT signature using JWKS public keys
     - Token expiration (exp claim)
+    - Issuer (iss claim) matches configured issuer URL
     - Audience (aud claim) matches configured client ID
     - Subject (sub claim) exists and contains user ID
 
@@ -155,6 +157,7 @@ class OAuthTokenVerifier:
         Raises:
             TokenValidationError: If token format or signature is invalid
             TokenExpiredError: If token has expired
+            IssuerMismatchError: If iss claim doesn't match configured issuer
             AudienceMismatchError: If aud claim doesn't match client ID
             SubjectClaimMissingError: If sub claim is missing
 
@@ -176,12 +179,8 @@ class OAuthTokenVerifier:
                 token,
                 key=public_key,
                 algorithms=["RS256"],
-                options={
-                    "verify_iss": False,  # Don't validate issuer
-                    "verify_aud": True,
-                    "verify_exp": True,
-                },
                 audience=settings.oauth_client_id,
+                issuer=settings.oauth_issuer,
             )
 
             # Verify subject claim exists
@@ -195,6 +194,9 @@ class OAuthTokenVerifier:
 
         except jwt.ExpiredSignatureError as e:
             raise TokenExpiredError("Token has expired") from e
+        except jwt.InvalidIssuerError as e:
+            msg = f"Token issuer does not match expected issuer '{settings.oauth_issuer}'"
+            raise IssuerMismatchError(msg) from e
         except jwt.InvalidAudienceError as e:
             msg = f"Token audience does not match expected client ID '{settings.oauth_client_id}'"
             raise AudienceMismatchError(msg) from e
