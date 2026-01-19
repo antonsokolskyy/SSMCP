@@ -5,6 +5,7 @@ Environment variables are automatically mapped to Settings fields.
 
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,6 +78,32 @@ class Settings(BaseSettings):
     redis_url: str = ""
     redis_key_prefix: str = "ssmcp"
     redis_expiration_seconds: int = 3600
+
+    # --- OAuth Authentication ---
+    oauth_enabled: bool = False
+    oauth_jwks_url: str = ""
+    oauth_client_id: str = ""
+    oauth_issuer: str = ""
+
+    @model_validator(mode="after")
+    def validate_oauth_config(self) -> "Settings":
+        """Validate OAuth configuration when enabled.
+
+        Raises:
+            ValueError: If OAuth is enabled but required fields are missing
+
+        """
+        if self.oauth_enabled:
+            if not self.oauth_jwks_url:
+                msg = "OAUTH_JWKS_URL must be set when OAUTH_ENABLED=true"
+                raise ValueError(msg)
+            if not self.oauth_client_id:
+                msg = "OAUTH_CLIENT_ID must be set when OAUTH_ENABLED=true"
+                raise ValueError(msg)
+            if not self.oauth_issuer:
+                msg = "OAUTH_ISSUER must be set when OAUTH_ENABLED=true"
+                raise ValueError(msg)
+        return self
 
     # --- Tool Metadata ---
     # Tool descriptions are stored here so they can be updated via environment
