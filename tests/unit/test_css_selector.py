@@ -1,6 +1,6 @@
 """Unit tests for CSS selector filter functionality."""
 
-from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from bs4 import BeautifulSoup
@@ -9,16 +9,15 @@ from ssmcp.parser.filters.css_selector import CssSelectorFilter
 
 
 @pytest.fixture
-def mock_settings() -> Any:
+def mock_settings() -> MagicMock:
     """Create mock settings for testing."""
-    class MockSettings:
-        css_selector_priority_list = (
-            'article, main, [role="main"], .article, .article-content, '
-            '#content, #main, .content'
-        )
-        css_selector_min_words = 50
-
-    return MockSettings()
+    settings = MagicMock()
+    settings.css_selector_priority_list = (
+        'article, main, [role="main"], .article, .article-content, '
+        '#content, #main, .content'
+    )
+    settings.css_selector_min_words = 50
+    return settings
 
 
 @pytest.fixture
@@ -144,7 +143,7 @@ class TestCssSelectorFilter:
     """Test suite for CSS selector filter."""
 
     def test_finds_content_id_selector(
-        self, mock_settings: Any, stackoverflow_like_html: str
+        self, mock_settings: MagicMock, stackoverflow_like_html: str
     ) -> None:
         """Test that #content selector is found and extracted."""
         filter_instance = CssSelectorFilter(mock_settings)
@@ -156,7 +155,7 @@ class TestCssSelectorFilter:
         assert 'Navigation Menu' not in result  # Header should be excluded
         assert 'Copyright 2024' not in result  # Footer should be excluded
 
-    def test_finds_article_tag(self, mock_settings: Any, article_tag_html: str) -> None:
+    def test_finds_article_tag(self, mock_settings: MagicMock, article_tag_html: str) -> None:
         """Test that article tag is found (higher priority than #content)."""
         filter_instance = CssSelectorFilter(mock_settings)
         result = filter_instance.apply(article_tag_html)
@@ -167,7 +166,7 @@ class TestCssSelectorFilter:
         assert 'Site Navigation' not in result
         assert 'Related articles' not in result
 
-    def test_finds_role_main(self, mock_settings: Any, role_main_html: str) -> None:
+    def test_finds_role_main(self, mock_settings: MagicMock, role_main_html: str) -> None:
         """Test that role="main" is found."""
         filter_instance = CssSelectorFilter(mock_settings)
         result = filter_instance.apply(role_main_html)
@@ -179,7 +178,7 @@ class TestCssSelectorFilter:
         assert 'Footer content' not in result
 
     def test_no_selector_match_returns_none(
-        self, mock_settings: Any, no_selector_match_html: str
+        self, mock_settings: MagicMock, no_selector_match_html: str
     ) -> None:
         """Test that None is returned when no selector matches."""
         filter_instance = CssSelectorFilter(mock_settings)
@@ -187,7 +186,7 @@ class TestCssSelectorFilter:
         assert result is None
 
     def test_low_word_count_returns_none(
-        self, mock_settings: Any, low_word_count_html: str
+        self, mock_settings: MagicMock, low_word_count_html: str
     ) -> None:
         """Test that None is returned when word count is insufficient."""
         filter_instance = CssSelectorFilter(mock_settings)
@@ -195,7 +194,7 @@ class TestCssSelectorFilter:
         assert result is None
 
     def test_word_count_threshold_respected(
-        self, mock_settings: Any, stackoverflow_like_html: str
+        self, mock_settings: MagicMock, stackoverflow_like_html: str
     ) -> None:
         """Test that word count threshold is properly checked."""
         filter_instance = CssSelectorFilter(mock_settings)
@@ -209,7 +208,7 @@ class TestCssSelectorFilter:
 
         assert word_count >= mock_settings.css_selector_min_words
 
-    def test_selector_priority_order(self, mock_settings: Any) -> None:
+    def test_selector_priority_order(self, mock_settings: MagicMock) -> None:
         """Test that selectors are tried in priority order."""
         # HTML with both article and #content
         html_with_both = """
@@ -234,13 +233,13 @@ class TestCssSelectorFilter:
         assert 'word word word' in result  # From article
         assert 'different' not in result  # #content should not be selected
 
-    def test_empty_html_returns_none(self, mock_settings: Any) -> None:
+    def test_empty_html_returns_none(self, mock_settings: MagicMock) -> None:
         """Test that None is returned for empty HTML."""
         filter_instance = CssSelectorFilter(mock_settings)
         result = filter_instance.apply("")
         assert result is None
 
-    def test_parse_selector_list(self, mock_settings: Any) -> None:
+    def test_parse_selector_list(self, mock_settings: MagicMock) -> None:
         """Test that selector list is correctly parsed from settings."""
         filter_instance = CssSelectorFilter(mock_settings)
         selectors = filter_instance._parse_selector_list()
@@ -255,16 +254,16 @@ class TestCssSelectorFilter:
     def test_custom_min_words_threshold(self, stackoverflow_like_html: str) -> None:
         """Test with custom minimum word threshold returns None when threshold not met."""
         custom_threshold = 200  # Very high threshold for testing
-        class CustomSettings:
-            css_selector_priority_list = '#content'
-            css_selector_min_words = custom_threshold
+        custom_settings = MagicMock()
+        custom_settings.css_selector_priority_list = '#content'
+        custom_settings.css_selector_min_words = custom_threshold
 
-        filter_instance = CssSelectorFilter(CustomSettings())  # type: ignore[arg-type]
+        filter_instance = CssSelectorFilter(custom_settings)
         result = filter_instance.apply(stackoverflow_like_html)
         assert result is None
 
     def test_preserves_html_structure(
-        self, mock_settings: Any, stackoverflow_like_html: str
+        self, mock_settings: MagicMock, stackoverflow_like_html: str
     ) -> None:
         """Test that the matched HTML preserves its internal structure."""
         filter_instance = CssSelectorFilter(mock_settings)
@@ -278,7 +277,7 @@ class TestCssSelectorFilter:
         assert soup.find('div', class_='question') is not None
         assert soup.find('div', class_='answer') is not None
 
-    def test_multiple_classes_on_content_div(self, mock_settings: Any) -> None:
+    def test_multiple_classes_on_content_div(self, mock_settings: MagicMock) -> None:
         """Test that #content is found even with multiple classes."""
         html = """
         <html>

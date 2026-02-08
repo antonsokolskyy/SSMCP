@@ -130,12 +130,10 @@ class TestMarkdownGenerator:
             with pytest.raises(MarkdownGeneratorError, match="no content"):
                 generator.convert("")
 
-    def test_convert_none_html_fails(self, mock_settings: MagicMock) -> None:
-        """Test that None HTML raises an error."""
+    def test_convert_whitespace_html_fails(self, mock_settings: MagicMock) -> None:
+        """Test that whitespace-only HTML raises MarkdownGeneratorError."""
         generator = MarkdownGenerator(mock_settings)
 
-        # None might be handled by the markdown generator library, so let's test
-        # that it produces an error or empty result
         mock_result = MagicMock()
         mock_result.fit_markdown = ""
         mock_result.raw_markdown = ""
@@ -148,7 +146,7 @@ class TestMarkdownGenerator:
             mock_md_gen_class.return_value = mock_md_gen
 
             with pytest.raises(MarkdownGeneratorError, match="no content"):
-                generator.convert("")  # Empty string instead of None
+                generator.convert("   \n\t  ")
 
     def test_convert_no_content_produced_fails(
         self, mock_settings: MagicMock, sample_html: str

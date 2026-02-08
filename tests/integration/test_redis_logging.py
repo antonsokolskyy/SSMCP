@@ -25,15 +25,15 @@ async def test_redis_logging_integration() -> None:
 
     redis_client = Redis.from_url(redis_url)
 
-    # Get initial keys to compare later
-    initial_keys = await redis_client.keys(f"{settings.redis_key_prefix}:*")
-
-    #Verify we can connect to redis first
+    # Verify we can connect to redis first
     try:
         await redis_client.ping()
     except Exception as e:
         # skip the test if connection fails
         pytest.skip(f"Could not connect to Redis: {e}")
+
+    # Get initial keys to compare later
+    initial_keys = await redis_client.keys(f"{settings.redis_key_prefix}:*")
 
     middleware = RedisLoggingMiddleware(redis_url=redis_url)
     await middleware.startup()

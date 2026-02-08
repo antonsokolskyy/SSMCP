@@ -2,12 +2,16 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
+from ssmcp.exceptions import SearXNGError
 from ssmcp.searxng_client import SearXNGClient
 
-# Expected number of results in test data
+# Test constants
 EXPECTED_RESULTS_COUNT = 2
+TEST_TIMEOUT = 10.0
+SEARCH_URL = "http://test.com/search"
 
 
 class TestSearXNGClient:
@@ -16,13 +20,21 @@ class TestSearXNGClient:
     @pytest.fixture
     def client(self) -> SearXNGClient:
         """Create a SearXNG client for testing."""
-        return SearXNGClient(search_url="http://test.com/search", timeout=10.0)
+        return SearXNGClient(search_url=SEARCH_URL, timeout=TEST_TIMEOUT)
 
-    async def test_search_handles_exception(self, client: SearXNGClient) -> None:
-        """Test that search raises SearXNGError on connection errors."""
+    async def test_search_unexpected_exception_not_wrapped(self, client: SearXNGClient) -> None:
+        """Test that unexpected exceptions are raised as-is (not wrapped).
+
+        Note: The SearXNG client only wraps httpx exceptions (HTTPStatusError, RequestError).
+        Other exceptions bubble up unchanged.
+        """
         with (
-            patch.object(client._client, "get", side_effect=Exception("Connection error")),
-            pytest.raises(Exception, match="Connection error"),
+            patch.object(
+                client._client,
+                "get",
+                side_effect=RuntimeError("Unexpected error"),
+            ),
+            pytest.raises(RuntimeError, match="Unexpected error"),
         ):
             await client.search("exception")
 
@@ -66,3 +78,46 @@ class TestSearXNGClient:
             results = await client.search("query")
 
         assert results == []
+
+    async def test_search_http_status_error(self, client: SearXNGClient) -> None:
+        """Test that HTTP status errors raise SearXNGError."""
+        mock_response = MagicMock()
+        mock_response.status_code = 500
+
+        with patch.object(
+            client._client,
+            "get",
+            side_effect=httpx.HTTPStatusError(
+                "Server error",
+                request=MagicMock(),
+                response=mock_response,
+            ),
+        ), pytest.raises(SearXNGError, match="Service returned error"):
+            await client.search("query")
+
+    async def test_search_request_error(self, client: SearXNGClient) -> None:
+        """Test that request errors (connection issues) raise SearXNGError."""
+        with patch.object(
+            client._client,
+            "get",
+            side_effect=httpx.RequestError("Connection refused", request=MagicMock()),
+        ), pytest.raises(SearXNGError, match="Service did not respond"):
+            await client.search("query")
+
+    async def test_search_invalid_json_response(self, client: SearXNGClient) -> None:
+        """Test that invalid JSON response raises SearXNGError."""
+        mock_response = AsyncMock()
+        mock_response.json = MagicMock(side_effect=ValueError("Invalid JSON"))
+        mock_response.raise_for_status = MagicMock()
+
+        with (
+            patch.object(client._client, "get", return_value=mock_response),
+            pytest.raises(SearXNGError, match="Invalid JSON response"),
+        ):
+            await client.search("query")
+
+    async def test_close_client(self, client: SearXNGClient) -> None:
+        """Test that close properly closes the HTTP client."""
+        with patch.object(client._client, "aclose", new_callable=AsyncMock) as mock_close:
+            await client.close()
+            mock_close.assert_called_once()

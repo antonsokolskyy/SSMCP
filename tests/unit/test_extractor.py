@@ -103,7 +103,7 @@ class TestExtractor:
 
     @pytest.mark.asyncio
     async def test_extract_html_raw_mode(self, mock_settings: MagicMock) -> None:
-        """Test extracting/cleaning raw HTML string."""
+        """Test extracting/cleaning raw HTML string with 'raw:' prefix."""
         extractor = Extractor(mock_settings)
 
         with patch("ssmcp.parser.extractor.AsyncWebCrawler") as mock_crawler_class:
@@ -119,11 +119,17 @@ class TestExtractor:
             await extractor.start()
 
             html_input = "<html><body>Test</body></html>"
-            await extractor.extract_html(html_input)
+            result = await extractor.extract_html(html_input)
 
-            # Should be called with 'raw:' prefix
+            # Verify the result contains expected HTML
+            assert isinstance(result, ExtractionResult)
+            assert result.raw_html == "<html><body>Content</body></html>"
+            assert result.cleaned_html == "<body>Cleaned</body>"
+
+            # Should be called with 'raw:' prefix (not a URL)
             call_kwargs = mock_crawler.arun.call_args
             assert call_kwargs.kwargs["url"] == f"raw:{html_input}"
+            assert not call_kwargs.kwargs["url"].startswith(("http://", "https://"))
 
     @pytest.mark.asyncio
     async def test_extract_html_returns_cleaned_html(
