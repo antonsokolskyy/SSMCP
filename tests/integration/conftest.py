@@ -1,8 +1,8 @@
 """Pytest configuration for integration tests.
 
 These tests require the server and external services to be running.
-Run: make server (in one terminal)
-Then: pytest tests/integration (in another terminal)
+Run: make up
+Then: make test
 """
 
 from collections.abc import AsyncGenerator

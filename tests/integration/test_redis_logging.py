@@ -1,3 +1,12 @@
+"""Integration tests for Redis logging middleware.
+
+These tests require:
+1. The MCP server running (make up)
+2. Redis service accessible
+
+Run: make test
+"""
+
 import json
 from unittest.mock import AsyncMock, MagicMock
 

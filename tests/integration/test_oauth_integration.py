@@ -1,5 +1,11 @@
 """Integration tests for OAuth functionality in the MCP server.
 
+These tests require:
+1. The MCP server running (make up)
+2. External OAuth services accessible (for JWKS endpoint mocking)
+
+Run: make test
+
 These tests verify OAuth behavior when enabled and disabled.
 """
 
