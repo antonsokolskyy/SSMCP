@@ -27,7 +27,6 @@ def mock_settings() -> MagicMock:
     settings.crawl4ai_exclude_external_links = True
     settings.crawl4ai_table_score_threshold = 5
     settings.crawl4ai_cache_mode = "bypass"
-    settings.extraction_html_type = "fit_html"
     return settings
 
 
@@ -95,7 +94,7 @@ class TestExtractor:
 
             assert isinstance(result, ExtractionResult)
             assert result.raw_html == "<html><body>Raw content</body></html>"
-            assert result.selected_html == "<body>Fit content</body>"
+            assert result.cleaned_html == "<body>Cleaned content</body>"
 
             # Verify crawler was called with URL
             mock_crawler.arun.assert_called_once()
@@ -127,11 +126,10 @@ class TestExtractor:
             assert call_kwargs.kwargs["url"] == f"raw:{html_input}"
 
     @pytest.mark.asyncio
-    async def test_extract_html_uses_fit_html_by_default(
+    async def test_extract_html_returns_cleaned_html(
         self, mock_settings: MagicMock
     ) -> None:
-        """Test that fit_html is used when extraction_html_type is 'fit_html'."""
-        mock_settings.extraction_html_type = "fit_html"
+        """Test that cleaned_html is always returned."""
         extractor = Extractor(mock_settings)
 
         with patch("ssmcp.parser.extractor.AsyncWebCrawler") as mock_crawler_class:
@@ -139,7 +137,6 @@ class TestExtractor:
             mock_result = MagicMock()
             mock_result.success = True
             mock_result.html = "<html>raw</html>"
-            mock_result.fit_html = "<body>fit content</body>"
             mock_result.cleaned_html = "<body>cleaned content</body>"
             mock_crawler.arun.return_value = mock_result
             mock_crawler_class.return_value = mock_crawler
@@ -148,31 +145,7 @@ class TestExtractor:
 
             result = await extractor.extract_html("https://example.com")
 
-            assert result.selected_html == "<body>fit content</body>"
-
-    @pytest.mark.asyncio
-    async def test_extract_html_uses_cleaned_html_when_configured(
-        self, mock_settings: MagicMock
-    ) -> None:
-        """Test that cleaned_html is used when configured."""
-        mock_settings.extraction_html_type = "cleaned_html"
-        extractor = Extractor(mock_settings)
-
-        with patch("ssmcp.parser.extractor.AsyncWebCrawler") as mock_crawler_class:
-            mock_crawler = AsyncMock()
-            mock_result = MagicMock()
-            mock_result.success = True
-            mock_result.html = "<html>raw</html>"
-            mock_result.fit_html = "<body>fit content</body>"
-            mock_result.cleaned_html = "<body>cleaned content</body>"
-            mock_crawler.arun.return_value = mock_result
-            mock_crawler_class.return_value = mock_crawler
-
-            await extractor.start()
-
-            result = await extractor.extract_html("https://example.com")
-
-            assert result.selected_html == "<body>cleaned content</body>"
+            assert result.cleaned_html == "<body>cleaned content</body>"
 
     @pytest.mark.asyncio
     async def test_extract_html_crawl4ai_failure(
@@ -229,7 +202,7 @@ class TestExtractor:
             mock_result = MagicMock()
             mock_result.success = True
             mock_result.html = "<html>content</html>"
-            mock_result.fit_html = "<body>content</body>"
+            mock_result.cleaned_html = "<body>content</body>"
             mock_crawler.arun.return_value = mock_result
             mock_crawler_class.return_value = mock_crawler
 
@@ -302,8 +275,7 @@ class TestExtractor:
             mock_result = MagicMock()
             mock_result.success = True
             mock_result.html = "<html>content</html>"
-            mock_result.fit_html = None  # None instead of empty string
-            mock_result.cleaned_html = None
+            mock_result.cleaned_html = None  # None instead of empty string
             mock_crawler.arun.return_value = mock_result
             mock_crawler_class.return_value = mock_crawler
 
@@ -313,7 +285,7 @@ class TestExtractor:
 
             # Should convert None to empty string
             assert result.raw_html == "<html>content</html>"
-            assert result.selected_html == ""
+            assert result.cleaned_html == ""
 
     @pytest.mark.asyncio
     async def test_parallel_url_extraction(self, mock_settings: MagicMock) -> None:
@@ -354,7 +326,6 @@ class TestExtractor:
                     result = MagicMock()
                     result.success = True
                     result.html = f"<html>content from {kw.get('url', 'unknown')}</html>"
-                    result.fit_html = "<body>fit content</body>"
                     result.cleaned_html = "<body>cleaned content</body>"
                     return result
 
@@ -384,7 +355,7 @@ class TestExtractor:
             for result in results:
                 assert isinstance(result, ExtractionResult)
                 assert result.raw_html.startswith("<html>content from")
-                assert result.selected_html == "<body>fit content</body>"
+                assert result.cleaned_html == "<body>cleaned content</body>"
 
             # Verify parallel execution occurred
             # With pool size 3 and 5 URLs, we should have had at least 3 concurrent

@@ -15,7 +15,8 @@ def mock_settings() -> MagicMock:
     settings = MagicMock()
     settings.css_selector_priority_list = "article, main, #content"
     settings.css_selector_min_words = 50
-    settings.extraction_html_type = "fit_html"
+    settings.junk_filter_enabled = True
+    settings.junk_filter_letter_ratio_threshold = 0.3
     return settings
 
 
@@ -178,7 +179,7 @@ class TestParser:
         ):
             # First extraction
             mock_extract.return_value = ExtractionResult(
-                raw_html=raw_html, selected_html=selected_html
+                raw_html=raw_html, cleaned_html=selected_html
             )
             # Filter matches
             mock_filter.return_value = "<article>filtered content</article>"
@@ -204,7 +205,7 @@ class TestParser:
             patch.object(parser._markdown_generator, "convert") as mock_convert,
         ):
             mock_extract.return_value = ExtractionResult(
-                raw_html="<html>...</html>", selected_html="<body>content</body>"
+                raw_html="<html>...</html>", cleaned_html="<body>content</body>"
             )
             mock_filter.return_value = None
             mock_convert.return_value = "# Fallback Markdown"
@@ -214,7 +215,7 @@ class TestParser:
             assert result == "# Fallback Markdown"
             # Should only extract once (no re-extraction for filter)
             mock_extract.assert_called_once()
-            # Should convert the selected_html
+            # Should convert the cleaned_html
             mock_convert.assert_called_once_with("<body>content</body>")
 
     async def test_run_pipeline_extraction_failure(
@@ -261,7 +262,8 @@ class TestParserCssSelectorFlow:
         settings.crawl4ai_escape_html = True
         settings.crawl4ai_body_width = 0
         settings.crawl4ai_include_sup_sub = True
-        settings.extraction_html_type = "fit_html"
+        settings.junk_filter_enabled = True
+        settings.junk_filter_letter_ratio_threshold = 0.3
         return settings
 
     @pytest.fixture
@@ -315,16 +317,16 @@ class TestParserCssSelectorFlow:
             if call_count == 1:
                 return ExtractionResult(
                     raw_html=raw_html_with_content,
-                    selected_html=cleaned_html_without_content,
+                    cleaned_html=cleaned_html_without_content,
                 )
             else:
-                selected_html = (
+                cleaned_html = (
                     '<div id="content"><div class="question">'
                     "<h1>How to use Python decorators?</h1>"
                     "<p>I'm learning about Python decorators...</p>"
                     "</div></div>"
                 )
-                return ExtractionResult(raw_html="", selected_html=selected_html)
+                return ExtractionResult(raw_html="", cleaned_html=cleaned_html)
 
         with patch.object(parser._extractor, "extract_html", side_effect=mock_extract):
             result = await parser.parse_pages(["http://example.com"], mock_ctx)
@@ -370,7 +372,7 @@ class TestParserCssSelectorFlow:
 
         with patch.object(parser._extractor, "extract_html") as mock_ext:
             mock_ext.return_value = ExtractionResult(
-                raw_html=raw_html_no_selectors, selected_html=cleaned_html_no_selectors
+                raw_html=raw_html_no_selectors, cleaned_html=cleaned_html_no_selectors
             )
 
             result = await parser.parse_pages(["http://example.com"], mock_ctx)
@@ -399,7 +401,7 @@ class TestParserCssSelectorFlow:
 
         with patch.object(parser._extractor, "extract_html") as mock_ext:
             mock_ext.return_value = ExtractionResult(
-                raw_html="", selected_html=cleaned_html
+                raw_html="", cleaned_html=cleaned_html
             )
             result = await parser.parse_pages(["http://example.com"], mock_ctx)
 
@@ -426,35 +428,33 @@ class TestParserCssSelectorFlow:
         parser = Parser(flow_mock_settings)
 
         urls = ["http://stackoverflow.com", "http://blog.com", "http://unknown.com"]
-        call_count = 0
 
         async def mock_extract(url_or_html: str) -> ExtractionResult:
-            nonlocal call_count
-            call_count += 1
-
-            if call_count <= len(urls):  # Initial extractions
+            # Initial URL extractions (start with http)
+            if url_or_html.startswith("http://"):
                 if "stackoverflow" in url_or_html:
                     return ExtractionResult(
                         raw_html='<html><body><div id="content">'
                         + " ".join(["word"] * 60)
                         + "</div></body></html>",
-                        selected_html="<html><body>" + " ".join(["word"] * 60) + "</body></html>",
+                        cleaned_html="<html><body>" + " ".join(["word"] * 60) + "</body></html>",
                     )
                 elif "blog" in url_or_html:
                     return ExtractionResult(
                         raw_html="<html><body><article>"
                         + " ".join(["post"] * 60)
                         + "</article></body></html>",
-                        selected_html="<html><body><article>"
+                        cleaned_html="<html><body><article>"
                         + " ".join(["post"] * 60)
                         + "</article></body></html>",
                     )
                 else:
                     raise SSMCPError("Not found")
             else:
+                # Re-extraction of filtered HTML fragments
                 return ExtractionResult(
                     raw_html="",
-                    selected_html="<html><body>filtered content</body></html>",
+                    cleaned_html="<html><body>filtered content</body></html>",
                 )
 
         with patch.object(parser._extractor, "extract_html", side_effect=mock_extract):

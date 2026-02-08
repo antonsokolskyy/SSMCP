@@ -107,19 +107,19 @@ class Parser:
         extraction_result = await self._extractor.extract_html(url)
 
         raw_html = extraction_result.raw_html
-        selected_html = extraction_result.selected_html
+        cleaned_html = extraction_result.cleaned_html
 
-        # 2. Try to find main content using CSS selectors
+        # 2. Apply a chain of filters to clean up content
         logger.debug("[FILTERING STARTED] for %s", url)
         filtered_html = await asyncio.to_thread(self._filter.apply_all, raw_html)
 
         # 3. Choose which HTML to convert:
         #    - If filter matched, re-extract the filtered fragment for cleaning
-        #    - Otherwise, use the pre-selected HTML from step 1
-        html_to_convert = selected_html
+        #    - Otherwise, use the cleaned HTML from step 1
+        html_to_convert = cleaned_html
         if filtered_html is not None:
             re_extraction_result = await self._extractor.extract_html(filtered_html)
-            html_to_convert = re_extraction_result.selected_html
+            html_to_convert = re_extraction_result.cleaned_html
 
         # 4. Convert to Markdown
         logger.debug("[MARKDOWN GENERATION STARTED] for %s", url)
