@@ -375,3 +375,20 @@ class TestResidualJunkFilter:
         assert "Good content here" in result
         # With 60% threshold, "123 456 789 numbers" (~46% letters) is removed
         assert "123 456 789 numbers" not in result
+
+    def test_keeps_elements_containing_protected_tags(self, mock_settings: MagicMock) -> None:
+        """Test that elements containing protected tags are preserved even if single word."""
+        junk_filter = ResidualJunkFilter(mock_settings)
+
+        html = """
+        <article>
+            <p>An asynchronous crawler, <strong><code>AsyncWebCrawler</code></strong>.</p>
+        </article>
+        """
+
+        result = junk_filter.apply(html)
+
+        assert result is not None
+        # The <code> element is protected, so its parent <strong> should also be kept
+        assert "AsyncWebCrawler" in result
+        assert "<code>AsyncWebCrawler</code>" in result

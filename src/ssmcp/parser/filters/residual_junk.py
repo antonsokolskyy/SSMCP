@@ -53,6 +53,10 @@ class ResidualJunkFilter:
             if self._is_inside_protected_containers(element):
                 continue
 
+            # Skip if contains protected tags
+            if self._contains_protected_tags(element):
+                continue
+
             # Check removal conditions
             if self._should_remove(element, seen_texts):
                 element.decompose()
@@ -95,6 +99,13 @@ class ResidualJunkFilter:
             seen_texts.add(text)
 
         return False
+
+    def _contains_protected_tags(self, element: "Tag") -> bool:
+        """Check if element contains any protected tags as descendants."""
+        return any(
+            descendant.name in self.PROTECTED_TAGS
+            for descendant in element.find_all(self.PROTECTED_TAGS, recursive=True)
+        )
 
     def _has_low_letter_ratio(self, text: str, threshold: float) -> bool:
         """Check if text has too few letters compared to other characters.
