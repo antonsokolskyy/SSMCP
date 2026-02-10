@@ -90,34 +90,38 @@ To access age-restricted or private YouTube videos, and to reduce the chances of
 
 **Note:** The cookies file must be in Netscape cookie format.
 
-#### Generating cookies.txt
+<details>
+  <summary>Generating cookies.txt</summary>
 
-**Option 1: Using Browser Extension**
+  **Option 1: Using Browser Extension**
 
-Install an extension (like "Get cookies.txt LOCALLY") for your browser and export cookies for youtube.com in Netscape format.
+  Install an extension (like "Get cookies.txt LOCALLY") for your browser and export cookies for youtube.com in Netscape format.
 
-**Option 2: Using yt-dlp Binary**
+  **Option 2: Using yt-dlp Binary**
 
-```sh
-yt-dlp --cookies-from-browser chrome --cookies cookies.txt https://www.youtube.com/watch?v=VIDEO_ID
-```
+  ```sh
+  yt-dlp --cookies-from-browser chrome --cookies cookies.txt https://www.youtube.com/watch?v=VIDEO_ID
+  ```
 
-Replace `chrome` with your browser (`firefox`, `edge`, `safari`, etc.). This automatically exports in Netscape format.
+  Replace `chrome` with your browser (`firefox`, `edge`, `safari`, etc.). This automatically exports in Netscape format.
+</details>
 
-#### Using cookies.txt
+<details>
+  <summary>Using cookies.txt</summary>
 
-Place the generated `cookies.txt` file in:
-```
-deploy/docker/ssmcp/cookies.txt
-```
+  Place the generated `cookies.txt` file in:
+  ```
+  deploy/docker/ssmcp/cookies.txt
+  ```
 
-**Security Warning:** The cookies file contains authentication tokens and sensitive data. Set appropriate file permissions to prevent unauthorized access:
+  **Security Warning:** The cookies file contains authentication tokens and sensitive data. Set appropriate file permissions to prevent unauthorized access:
 
-```sh
-chmod 600 deploy/docker/ssmcp/cookies.txt
-```
+  ```sh
+  chmod 600 deploy/docker/ssmcp/cookies.txt
+  ```
 
-The file will be automatically detected and used by Docker container.
+  The file will be automatically detected and used by Docker container.
+</details>
 
 ### MCP URL
 
@@ -149,21 +153,23 @@ http://localhost:8000/mcp
 
 SSMCP includes an optional Web UI for monitoring requests and responses. This is particularly useful for debugging and inspecting how the model uses the tools.
 
-### Enabling the Web UI
+<details>
+  <summary>Enabling the Web UI</summary>
 
-1. **Configure Redis**: Open your `.env` file and uncomment the `REDIS_URL` line:
-   ```env
-   REDIS_URL=redis://redis:6379
-   ```
+  1. **Configure Redis**: Open your `.env` file and uncomment the `REDIS_URL` line:
+    ```env
+    REDIS_URL=redis://redis:6379
+    ```
 
-2. **Enable Services**: Open `docker-compose.yml` (and `docker-compose.dev.yml` if using development mode) and uncomment the `redis` and `ssmcp-ui` service blocks.
+  2. **Enable Services**: Open `docker-compose.yml` (and `docker-compose.dev.yml` if using development mode) and uncomment the `redis` and `ssmcp-ui` service blocks.
 
-3. **Restart Services**:
-   ```sh
-   make build
-   ```
+  3. **Restart Services**:
+    ```sh
+    make build
+    ```
 
-4. **Access the Monitor**: Open [http://localhost:8081](http://localhost:8081) in your browser.
+  4. **Access the Monitor**: Open [http://localhost:8081](http://localhost:8081) in your browser.
+</details>
 
 ## Tools
 
@@ -197,7 +203,7 @@ Gets subtitles/captions from a YouTube video and returns the text content.
 - `url` (str): YouTube video URL to get subtitles from
 
 **Returns:**
-- String containing the subtitles with timestamps in format: [HH:MM:SS.mmm] text
+- String containing the subtitles with timestamps in format: [HH:MM:SS] text
 
 ## How Search Works
 
@@ -219,14 +225,11 @@ Two-stage filtering extracts clean main content:
 1. **CSS Selector Filter** - Tries selectors (`article`, `main`, etc.) to find main content area
 2. **Residual Junk Filter** - Removes UI artifacts (tooltips, duplicate text)
 
-If CSS filter matches, the fragment is re-processed for cleaner output.
+If any filter produces output, the filtered HTML is re-processed through Crawl4AI for cleaner output before markdown conversion.
 
 ### 4. Markdown Conversion
 - Converts filtered HTML to clean Markdown
 - Removes images and external links
-
-### Configuration
-All extraction and filtering parameters are configurable via environment variables. See `.env.example`
 
 ## Development
 
@@ -236,7 +239,8 @@ All development tasks are performed inside the Docker container. Nothing needs t
 
 Run `make help` to see all available commands:
 
-### Development Workflow
+<details>
+  <summary>Development Workflow</summary>
 
 0. **Enable Development mode:**  
    Open `.env` and uncomment the line
@@ -282,12 +286,13 @@ Run `make help` to see all available commands:
    ```sh
    make down
    ```
+</details>
 
 ## Configuration
 
 All configuration is managed through environment variables. See `.env.example` for available options
 
-## Optional OAuth Authentication (OpenWebUI)
+## OpenWebUI OAuth Authentication
 
 SSMCP supports OAuth authentication for use with OpenWebUI and any OIDC-compliant identity provider.
 
@@ -298,7 +303,8 @@ When you select **OAuth** in OpenWebUI for an MCP server:
 - The token is a JWT containing user information from the identity provider
 - SSMCP validates the token and extracts the user identifier from the `sub` claim
 
-### Enabling OAuth
+<details>
+  <summary>Enabling OAuth</summary>
 
 To enable OAuth authentication, set the following environment variables in your `.env` file:
 
@@ -320,8 +326,10 @@ OAUTH_ISSUER=https://your-idp.example.com/application/o/my-app
 # Open WebUI client ID for token audience verification
 OAUTH_CLIENT_ID=your-openwebui-client-id
 ```
+</details>
 
-### Token Validation
+<details>
+  <summary>Token Validation</summary>
 
 When OAuth is enabled, SSMCP validates:
 
@@ -330,8 +338,10 @@ When OAuth is enabled, SSMCP validates:
 3. **Expiration**: Validates the `exp` claim - rejects expired tokens
 4. **Audience**: Validates the `aud` claim matches `OAUTH_CLIENT_ID`
 5. **Subject**: Requires the `sub` claim (contains user identifier)
+</details>
 
-### OpenWebUI Configuration
+<details>
+  <summary>OpenWebUI Configuration</summary>
 
 In OpenWebUI, configure the MCP server with:
 
@@ -339,13 +349,16 @@ In OpenWebUI, configure the MCP server with:
 - **URL**: Your SSMCP server URL (e.g., `http://ssmcp:8000/mcp`)
 - **Auth**: OAuth
 - The system will automatically forward the user's OAuth token
+</details>
 
-### Supported Identity Providers
+<details>
+  <summary>Supported Identity Providers</summary>
 
 SSMCP works with any OIDC-compliant identity provider that:
 - Provides a JWKS endpoint for public key distribution
 - Issues JWT access tokens with RS256 signing
 - Includes standard claims (`sub`, `aud`, `exp`, `iss`)
+</details>
 
 ## License
 
