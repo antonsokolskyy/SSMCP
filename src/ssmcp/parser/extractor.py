@@ -14,7 +14,7 @@ class ExtractionResult(NamedTuple):
     """Result of HTML extraction."""
 
     raw_html: str
-    selected_html: str
+    cleaned_html: str
 
 
 class Extractor:
@@ -118,16 +118,12 @@ class Extractor:
                 raise Crawl4AIError(error_msg)
 
             raw_html = result.html
-            selected_html = (
-                result.cleaned_html
-                if self._settings.extraction_html_type == "cleaned_html"
-                else result.fit_html
-            )
+            cleaned_html = result.cleaned_html
 
-            if not raw_html and not selected_html:
+            if not raw_html and not cleaned_html:
                 raise ExtractorError("No HTML content extracted")
 
-            return ExtractionResult(raw_html=raw_html or "", selected_html=selected_html or "")
+            return ExtractionResult(raw_html=raw_html or "", cleaned_html=cleaned_html or "")
 
         finally:
             # Always return the crawler to the pool

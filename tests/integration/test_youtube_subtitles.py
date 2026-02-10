@@ -1,9 +1,9 @@
 """Integration tests for youtube_get_subtitles MCP tool.
 
 These tests require:
-1. The MCP server running (make server)
+1. The MCP server running (make up)
 
-Run: pytest tests/integration/test_youtube_subtitles.py
+Run: make test
 """
 
 from typing import Any

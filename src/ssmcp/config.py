@@ -63,8 +63,9 @@ class Settings(BaseSettings):
     )
     css_selector_min_words: int = 50
 
-    # --- HTML Type Selection ---
-    extraction_html_type: str = "fit_html"
+    # --- Residual Junk Filter ---
+    junk_filter_enabled: bool = True
+    junk_filter_letter_ratio_threshold: float = 0.3
 
     # --- Content Extraction & YouTube ---
     youtube_subtitle_language: str = "en"

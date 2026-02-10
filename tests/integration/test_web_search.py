@@ -1,10 +1,10 @@
 """Integration tests for web_search MCP tool.
 
 These tests require:
-1. The MCP server running (make server)
+1. The MCP server running (make up)
 2. External services accessible (SearXNG)
 
-Run: pytest tests/integration/test_web_search.py
+Run: make test
 """
 
 from typing import Any

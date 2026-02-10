@@ -211,22 +211,19 @@ SSMCP uses a pipeline to deliver clean content from web searches:
 ### 2. Content Extraction (Crawl4AI)
 - Each URL is fetched using headless Chromium browser
 - Pages are fully rendered (JavaScript executed, dynamic content loaded)
-- Filtered content is extracted
+- Raw content is extracted
 - All URLs are processed concurrently
 
-### 3. CSS Selector Matching
-- Applies a priority list of CSS selectors to find main content
-- Default selectors (in order): `article`, `main`, `[role="main"]`, `.article`, `.article-content`, etc.
-- For each selector:
-  1. Checks if the element exists in the page
-  2. Counts words in the element
-  3. Returns the first match with ≥ 50 words (configurable)
-- If a match is found, the filtered HTML is re-processed through Crawl4AI
-- **Fallback**: If no selector matched, uses HTML from step 2
+### 3. Content Filtering
+Two-stage filtering extracts clean main content:
+1. **CSS Selector Filter** - Tries selectors (`article`, `main`, etc.) to find main content area
+2. **Residual Junk Filter** - Removes UI artifacts (tooltips, duplicate text)
+
+If CSS filter matches, the fragment is re-processed for cleaner output.
 
 ### 4. Markdown Conversion
-- The selected HTML is converted to clean Markdown format
-- Removes images and external links for cleaner output
+- Converts filtered HTML to clean Markdown
+- Removes images and external links
 
 ### Configuration
 All extraction and filtering parameters are configurable via environment variables. See `.env.example`
