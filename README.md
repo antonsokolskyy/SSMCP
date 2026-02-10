@@ -157,18 +157,18 @@ SSMCP includes an optional Web UI for monitoring requests and responses. This is
   <summary>Enabling the Web UI</summary>
 
   1. **Configure Redis**: Open your `.env` file and uncomment the `REDIS_URL` line:
-    ```env
-    REDIS_URL=redis://redis:6379
-    ```
+  ```env
+  REDIS_URL=redis://redis:6379
+  ```
 
-  2. **Enable Services**: Open `docker-compose.yml` (and `docker-compose.dev.yml` if using development mode) and uncomment the `redis` and `ssmcp-ui` service blocks.
+  3. **Enable Services**: Open `docker-compose.yml` (and `docker-compose.dev.yml` if using development mode) and uncomment the `redis` and `ssmcp-ui` service blocks.
 
-  3. **Restart Services**:
-    ```sh
-    make build
-    ```
+  4. **Restart Services**:
+  ```sh
+  make build
+  ```
 
-  4. **Access the Monitor**: Open [http://localhost:8081](http://localhost:8081) in your browser.
+  5. **Access the Monitor**: Open [http://localhost:8081](http://localhost:8081) in your browser.
 </details>
 
 ## Tools
