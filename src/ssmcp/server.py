@@ -10,11 +10,13 @@ from fastmcp.server.dependencies import get_http_request
 
 from ssmcp.config import settings
 from ssmcp.exceptions import SSMCPError
+from ssmcp.llm_client import LLMClient
 from ssmcp.logger import logger, setup_logging
 from ssmcp.middleware.redis_middleware import RedisLoggingMiddleware
 from ssmcp.oauth import OAuthTokenVerifier
 from ssmcp.parser.parser import Parser
 from ssmcp.searxng_client import SearXNGClient
+from ssmcp.summarization_service import SummarizationService
 from ssmcp.timing import timeit
 from ssmcp.youtube_client import YouTubeClient
 
@@ -57,6 +59,20 @@ class ServerState:
             cookies_path=settings.youtube_cookies_path,
         )
 
+        # Initialize summarization service if enabled
+        if settings.llm_summarization_enabled:
+            llm_client = LLMClient(
+                api_key=settings.llm_api_key,
+                api_url=settings.llm_api_url if settings.llm_api_url else None,
+            )
+            self.summarization_service = SummarizationService(
+                client=llm_client,
+                model=settings.llm_model,
+                system_prompt=settings.llm_summarization_prompt,
+            )
+        else:
+            self.summarization_service = None
+
     async def start(self) -> None:
         """Startup logic for client resources."""
         logger.info("Starting SSMCP server resources...")
@@ -67,6 +83,8 @@ class ServerState:
         logger.info("Stopping SSMCP server resources...")
         await self.parser.close()
         await self.searxng_client.close()
+        if self.summarization_service:
+            await self.summarization_service.client.close()
 
     async def search_and_enrich(self, query: str, ctx: Context) -> list[dict[str, Any]]:
         """Perform search and enrich results with page content.
@@ -84,7 +102,17 @@ class ServerState:
         urls_to_fetch = [r["url"] for r in search_results[:settings.searxng_max_results]]
 
         content_map = await self.parser.parse_pages(urls_to_fetch, ctx)
-        return [{"url": url, "content": content} for url, content in content_map.items()]
+        results = [{"url": url, "content": content} for url, content in content_map.items()]
+
+        # Apply LLM summarization if enabled
+        if self.summarization_service:
+            logger.debug("Applying LLM summarization to %d results...", len(results))
+            results = await self.summarization_service.summarize_results(
+                query=query,
+                results=results,
+            )
+
+        return results
 
 
 @asynccontextmanager

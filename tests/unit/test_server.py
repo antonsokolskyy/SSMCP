@@ -47,6 +47,12 @@ def mock_settings() -> MagicMock:
     settings.redis_url = ""
     settings.host = "127.0.0.1"
     settings.port = TEST_PORT
+    # LLM Summarization settings - disabled by default for tests
+    settings.llm_summarization_enabled = False
+    settings.llm_api_key = ""
+    settings.llm_api_url = ""
+    settings.llm_model = ""
+    settings.llm_summarization_prompt = "Test prompt"
     return settings
 
 
