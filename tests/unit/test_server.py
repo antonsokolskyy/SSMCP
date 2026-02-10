@@ -98,6 +98,53 @@ class TestServerState:
             assert state.youtube_client is not None
 
     @pytest.mark.asyncio
+    async def test_init_without_summarization(self, mock_settings: MagicMock) -> None:
+        """Test that ServerState doesn't create summarization service when disabled."""
+        mock_settings.llm_summarization_enabled = False
+        with patch("ssmcp.server.settings", mock_settings):
+            state = ServerState()
+            assert state.summarization_service is None
+
+    @pytest.mark.asyncio
+    async def test_init_with_summarization(self, mock_settings: MagicMock) -> None:
+        """Test that ServerState creates summarization service when enabled."""
+        mock_settings.llm_summarization_enabled = True
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_model = "gpt-4"
+        mock_settings.llm_api_url = "https://custom.api/v1"
+        mock_settings.llm_summarization_prompt = "Test prompt"
+
+        with (
+            patch("ssmcp.server.settings", mock_settings),
+            patch("ssmcp.server.LLMClient") as mock_llm_client_class,
+        ):
+            state = ServerState()
+            assert state.summarization_service is not None
+            mock_llm_client_class.assert_called_once_with(
+                api_key="test-key", api_url="https://custom.api/v1"
+            )
+
+    @pytest.mark.asyncio
+    async def test_stop_closes_llm_client(self, mock_settings: MagicMock) -> None:
+        """Test that stop() closes LLM client if service exists."""
+        mock_settings.llm_summarization_enabled = True
+        mock_settings.llm_api_key = "test-key"
+        mock_settings.llm_model = "gpt-4"
+        mock_settings.llm_summarization_prompt = "Test prompt"
+
+        with (
+            patch("ssmcp.server.settings", mock_settings),
+            patch("ssmcp.server.LLMClient") as mock_llm_client_class,
+        ):
+            mock_llm_client = MagicMock()
+            mock_llm_client.close = AsyncMock()
+            mock_llm_client_class.return_value = mock_llm_client
+
+            state = ServerState()
+            await state.stop()
+            mock_llm_client.close.assert_called_once()
+
+    @pytest.mark.asyncio
     async def test_start_initializes_parser(self, mock_settings: MagicMock) -> None:
         """Test that start() initializes parser resources."""
         with patch("ssmcp.server.settings", mock_settings):
