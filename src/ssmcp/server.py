@@ -45,7 +45,19 @@ class ServerState:
 
     Provides a clean way to manage client lifecycles and provides them
     as dependencies to tools.
+
+    Attributes:
+        searxng_client: SearXNG search client
+        parser: Content parser instance
+        youtube_client: YouTube subtitles client
+        summarization_service: Optional LLM summarization service
+
     """
+
+    searxng_client: SearXNGClient
+    parser: Parser
+    youtube_client: YouTubeClient
+    summarization_service: SummarizationService | None
 
     def __init__(self) -> None:
         """Initialize the server state."""

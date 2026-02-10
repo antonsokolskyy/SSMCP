@@ -8,6 +8,7 @@ out empty or failed summaries.
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from ssmcp.llm_client import LLMClient, LLMResponse
 from ssmcp.logger import logger
@@ -78,8 +79,8 @@ class SummarizationService:
         self,
         *,
         query: str,
-        results: list[dict],
-    ) -> list[dict]:
+        results: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
         """Summarize multiple search results in parallel.
 
         Args:
@@ -96,7 +97,7 @@ class SummarizationService:
         # Create summarization tasks for all pages
         async def summarize_with_index(
             idx: int,
-            result: dict,
+            result: dict[str, Any],
         ) -> tuple[int, LLMResponse]:
             response = await self.summarize_page(
                 query=query,
@@ -109,7 +110,7 @@ class SummarizationService:
         summaries = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Build result list, filtering out empty/failed summaries
-        summarized_results: list[dict] = []
+        summarized_results: list[dict[str, Any]] = []
 
         for i, result in enumerate(results):
             summary_data = summaries[i]
@@ -118,7 +119,7 @@ class SummarizationService:
             if isinstance(summary_data, Exception):
                 continue
 
-            idx, llm_response = summary_data
+            _idx, llm_response = summary_data  # type: ignore[misc]
 
             # Skip if LLM call failed
             if llm_response.error:

@@ -88,7 +88,7 @@ class LLMClient:
 
             return LLMResponse(content=content.strip(), error=None)
 
-        except Exception as e:  # noqa: BLE001 - Catch all LLM errors uniformly
+        except Exception as e:
             return LLMResponse(content=None, error=f"LLM request failed: {e!s}")
 
     async def close(self) -> None:

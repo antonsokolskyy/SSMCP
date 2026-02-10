@@ -91,14 +91,16 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_api_url: str = ""
     llm_model: str = ""
-    llm_summarization_prompt: str = """You are a precise summarization assistant. Your task is to extract and summarize information STRICTLY from the provided web page content.
-
-Rules:
-- Extract ONLY information present in the content
-- Do NOT add information from your training data
-- Do NOT make up, infer, or hallucinate details
-- If no relevant information is found, return EMPTY response (no text at all)
-- Focus on factual accuracy over completeness"""
+    llm_summarization_prompt: str = (
+        "You are a precise summarization assistant. Your task is to extract and "
+        "summarize information STRICTLY from the provided web page content.\n\n"
+        "Rules:\n"
+        "- Extract ONLY information present in the content\n"
+        "- Do NOT add information from your training data\n"
+        "- Do NOT make up, infer, or hallucinate details\n"
+        "- If no relevant information is found, return EMPTY response (no text at all)\n"
+        "- Focus on factual accuracy over completeness"
+    )
 
     @model_validator(mode="after")
     def validate_oauth_config(self) -> "Settings":
