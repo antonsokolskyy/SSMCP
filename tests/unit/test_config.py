@@ -153,3 +153,79 @@ class TestSettings:
         )
         assert settings.redis_url == ""
         assert settings.oauth_jwks_url == ""
+
+
+class TestLLMSettingsValidation:
+    """Test LLM summarization configuration validation."""
+
+    def test_llm_disabled_no_validation(self) -> None:
+        """Test LLM config not validated when summarization is disabled."""
+        settings = Settings(
+            searxng_search_url="http://test.com",
+            llm_summarization_enabled=False,
+            llm_api_key="",
+            llm_model="",
+            llm_summarization_prompt="",
+        )
+        assert settings.llm_summarization_enabled is False
+
+    def test_llm_enabled_requires_api_key(self) -> None:
+        """Test LLM_API_KEY required when summarization enabled."""
+        with pytest.raises(ValueError, match="LLM_API_KEY must be set"):
+            Settings(
+                searxng_search_url="http://test.com",
+                llm_summarization_enabled=True,
+                llm_api_key="",
+                llm_model="gpt-4",
+                llm_summarization_prompt="Test prompt",
+            )
+
+    def test_llm_enabled_requires_model(self) -> None:
+        """Test LLM_MODEL required when summarization enabled."""
+        with pytest.raises(ValueError, match="LLM_MODEL must be set"):
+            Settings(
+                searxng_search_url="http://test.com",
+                llm_summarization_enabled=True,
+                llm_api_key="test-key",
+                llm_model="",
+                llm_summarization_prompt="Test prompt",
+            )
+
+    def test_llm_enabled_requires_prompt(self) -> None:
+        """Test LLM_SUMMARIZATION_PROMPT required when summarization enabled."""
+        with pytest.raises(ValueError, match="LLM_SUMMARIZATION_PROMPT must be set"):
+            Settings(
+                searxng_search_url="http://test.com",
+                llm_summarization_enabled=True,
+                llm_api_key="test-key",
+                llm_model="gpt-4",
+                llm_summarization_prompt="",
+            )
+
+    def test_llm_enabled_valid_config(self) -> None:
+        """Test valid LLM configuration passes validation."""
+        settings = Settings(
+            searxng_search_url="http://test.com",
+            llm_summarization_enabled=True,
+            llm_api_key="test-key",
+            llm_model="gpt-4",
+            llm_api_url="https://custom.api/v1",
+            llm_summarization_prompt="Test prompt",
+        )
+        assert settings.llm_summarization_enabled is True
+        assert settings.llm_api_key == "test-key"
+        assert settings.llm_model == "gpt-4"
+        assert settings.llm_api_url == "https://custom.api/v1"
+        assert settings.llm_summarization_prompt == "Test prompt"
+
+    def test_llm_disabled_allows_empty_fields(self) -> None:
+        """Test that empty LLM fields are allowed when feature is disabled."""
+        settings = Settings(
+            searxng_search_url="http://test.com",
+            llm_summarization_enabled=False,
+            llm_api_key="",
+            llm_model="",
+            llm_api_url="",
+            llm_summarization_prompt="",
+        )
+        assert settings.llm_summarization_enabled is False

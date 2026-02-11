@@ -9,6 +9,7 @@ Many AI models, especially local models or certain cloud-based models, don't hav
 - **Search and Read the Web**: Let your AI search for current information, read articles, documentation, or any web content
 - **Extract Clean Content**: Automatically converts messy web pages into clean Markdown format that AI models can easily understand
 - **Access YouTube Transcripts**: Extract subtitles from videos with timestamps for analysis or summarization
+- **AI-Powered Summarization**: Optional LLM summarization extracts only relevant information from web pages based on your search query
 - **Privacy-Focused**: Self-hosted solution - your searches and browsing stay on your infrastructure
 - **Works with Any Model**: Compatible with local models (like Qwen, Llama) and cloud APIs (DeepSeek, Claude, GPT) that support MCP
 
@@ -18,12 +19,14 @@ Many AI models, especially local models or certain cloud-based models, don't hav
 - Analyze current market trends or product reviews
 - Extract information from YouTube tutorials or presentations
 - Get up-to-date answers that aren't in the model's training data
+- Get concise, query-relevant summaries of web content (with LLM summarization enabled)
 
 ## Features
 
 - **Web Search**: Search the web and get results with extracted content in Markdown
 - **Web Fetch**: Fetch and extract content from any URL as clean Markdown
 - **YouTube Subtitles**: Extract subtitles and timestamps from YouTube videos
+- **LLM Summarization** (Optional): Use an LLM to summarize and filter search results by relevance to your query
 - **Powered by**: [SearXNG](https://github.com/searxng/searxng) for search, [Crawl4AI](https://github.com/unclecode/crawl4ai) for content extraction, [yt-dlp](https://github.com/yt-dlp/yt-dlp) for subtitles
 - **Simple API**: Easy-to-use interface designed for compatibility with both small local models(like Qwen3 30b) and cloud models lacking web capabilities (e.g., DeepSeek 3.2)
 - **Container Support**: Full containerized deployment with Docker Compose
@@ -230,6 +233,12 @@ If any filter produces output, the filtered HTML is re-processed through Crawl4A
 ### 4. Markdown Conversion
 - Converts filtered HTML to clean Markdown
 - Removes images and external links
+
+### 5. Optional: LLM Summarization
+
+When enabled, SSMCP uses an LLM to summarize search results before returning them to your AI model. This reduces the token count in your context window - search results can be 40k-60k tokens, but summaries significantly reduce that.
+
+**Note:** LLM summarization is disabled by default. Enable it via environment variables if needed (see `.env.example`).
 
 ## Development
 

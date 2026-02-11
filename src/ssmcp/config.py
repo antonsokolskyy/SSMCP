@@ -86,6 +86,22 @@ class Settings(BaseSettings):
     oauth_client_id: str = ""
     oauth_issuer: str = ""
 
+    # --- LLM Summarization ---
+    llm_summarization_enabled: bool = False
+    llm_api_key: str = ""
+    llm_api_url: str = ""
+    llm_model: str = ""
+    llm_summarization_prompt: str = (
+        "You are a precise summarization assistant. Your task is to extract and "
+        "summarize information STRICTLY from the provided web page content.\n\n"
+        "Rules:\n"
+        "- Extract ONLY information present in the content\n"
+        "- Do NOT add information from your training data\n"
+        "- Do NOT make up, infer, or hallucinate details\n"
+        "- If no relevant information is found, return EMPTY response (no text at all)\n"
+        "- Focus on factual accuracy over completeness"
+    )
+
     @model_validator(mode="after")
     def validate_oauth_config(self) -> "Settings":
         """Validate OAuth configuration when enabled.
@@ -103,6 +119,26 @@ class Settings(BaseSettings):
                 raise ValueError(msg)
             if not self.oauth_issuer:
                 msg = "OAUTH_ISSUER must be set when OAUTH_ENABLED=true"
+                raise ValueError(msg)
+        return self
+
+    @model_validator(mode="after")
+    def validate_llm_config(self) -> "Settings":
+        """Validate LLM configuration when summarization is enabled.
+
+        Raises:
+            ValueError: If summarization is enabled but required fields are missing
+
+        """
+        if self.llm_summarization_enabled:
+            if not self.llm_api_key:
+                msg = "LLM_API_KEY must be set when LLM_SUMMARIZATION_ENABLED=true"
+                raise ValueError(msg)
+            if not self.llm_model:
+                msg = "LLM_MODEL must be set when LLM_SUMMARIZATION_ENABLED=true"
+                raise ValueError(msg)
+            if not self.llm_summarization_prompt:
+                msg = "LLM_SUMMARIZATION_PROMPT must be set when LLM_SUMMARIZATION_ENABLED=true"
                 raise ValueError(msg)
         return self
 
